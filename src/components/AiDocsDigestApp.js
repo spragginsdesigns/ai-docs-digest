@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	Container,
 	TextField,
@@ -65,16 +65,15 @@ export default function AiDocsDigestApp() {
 		localStorage.setItem("aiDocsDigestProjects", JSON.stringify(projects));
 	}, [projects]);
 
-	const addSection = () => {
-		const newId =
-			(sections.length > 0
-				? Math.max(...sections.map((s) => parseInt(s.id)))
-				: 0) + 1;
-		setSections([
-			...sections,
-			{ id: newId.toString(), content: "", title: "", tags: [] }
-		]);
-	};
+const addSection = useCallback(() => {
+  const newId = (sections.length > 0
+    ? Math.max(...sections.map((s) => parseInt(s.id)))
+    : 0) + 1;
+  setSections([
+    ...sections,
+    { id: newId.toString(), content: "", title: "", tags: [] }
+  ]);
+}, [sections]);
 
 	const updateSection = (id, field, value) => {
 		setSections(
@@ -88,34 +87,34 @@ export default function AiDocsDigestApp() {
 		setSections(sections.filter((section) => section.id !== id));
 	};
 
-	const combineMarkdown = () => {
-		const combined = sections
-			.map((section) => `## ${section.title}\n\n${section.content}`)
-			.join("\n\n---\n\n");
-		setCombinedMarkdown(combined);
-		setSnackbarMessage("Markdown combined successfully!");
-		setSnackbarOpen(true);
-	};
+const combineMarkdown = useCallback(() => {
+  const combined = sections
+    .map((section) => `## ${section.title}\n\n${section.content}`)
+    .join("\n\n---\n\n");
+  setCombinedMarkdown(combined);
+  setSnackbarMessage("Markdown combined successfully!");
+  setSnackbarOpen(true);
+}, [sections]);
 
-	const copyToClipboard = () => {
-		navigator.clipboard.writeText(combinedMarkdown);
-		setSnackbarMessage("Copied to clipboard!");
-		setSnackbarOpen(true);
-	};
+const copyToClipboard = useCallback(() => {
+  navigator.clipboard.writeText(combinedMarkdown);
+  setSnackbarMessage("Copied to clipboard!");
+  setSnackbarOpen(true);
+}, [combinedMarkdown]);
 
-	const downloadMarkdown = () => {
-		const blob = new Blob([combinedMarkdown], { type: "text/markdown" });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = `${activeProject}_combined_docs.md`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
-		setSnackbarMessage("File downloaded!");
-		setSnackbarOpen(true);
-	};
+const downloadMarkdown = useCallback(() => {
+  const blob = new Blob([combinedMarkdown], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${activeProject}_combined_docs.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setSnackbarMessage("File downloaded!");
+  setSnackbarOpen(true);
+}, [combinedMarkdown, activeProject]);
 
 	const downloadPDF = () => {
 		const doc = new jsPDF();
@@ -162,39 +161,41 @@ export default function AiDocsDigestApp() {
 		}
 	};
 
-	const handleKeyDown = (e) => {
-		if (e.ctrlKey || e.metaKey) {
-			switch (e.key) {
-				case "s":
-					e.preventDefault();
-					combineMarkdown();
-					break;
-				case "d":
-					e.preventDefault();
-					downloadMarkdown();
-					break;
-				case "c":
-					if (e.shiftKey) {
-						e.preventDefault();
-						copyToClipboard();
-					}
-					break;
-				case "n":
-					e.preventDefault();
-					addSection();
-					break;
-				default:
-					break;
-			}
-		}
-	};
 
-	useEffect(() => {
-		document.addEventListener("keydown", handleKeyDown);
-		return () => {
-			document.removeEventListener("keydown", handleKeyDown);
-		};
-	}, [sections, combinedMarkdown]);
+
+useEffect(() => {
+  document.addEventListener("keydown", handleKeyDown);
+  return () => {
+    document.removeEventListener("keydown", handleKeyDown);
+  };
+}, [handleKeyDown]);
+
+const handleKeyDown = useCallback((e) => {
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key) {
+      case "s":
+        e.preventDefault();
+        combineMarkdown();
+        break;
+      case "d":
+        e.preventDefault();
+        downloadMarkdown();
+        break;
+      case "c":
+        if (e.shiftKey) {
+          e.preventDefault();
+          copyToClipboard();
+        }
+        break;
+      case "n":
+        e.preventDefault();
+        addSection();
+        break;
+      default:
+        break;
+    }
+  }
+}, [combineMarkdown, downloadMarkdown, copyToClipboard, addSection]);
 
 	return (
 		<Container
